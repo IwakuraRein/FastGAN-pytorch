@@ -26,7 +26,7 @@ def rand_brightness(x):
     return x
 
 def rand_flip(x, prob=0.5):
-    if np.random.rand() > prob:
+    if np.random.rand() < prob:
         x = transforms.functional.hflip(x)
     return x
 
