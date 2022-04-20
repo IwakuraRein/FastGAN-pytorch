@@ -150,8 +150,7 @@ def train(args):
         netD = nn.DataParallel(netD.to(device))
     
 
-    with tqdm(total=total_iterations) as pbar:
-        pbar.update(current_iteration)
+    with tqdm(total=total_iterations,initial=current_iteration) as pbar:
         for iteration in range(current_iteration, total_iterations+1):
             pbar.set_description('iter: {}/{}'.format(iteration + 1, total_iterations))
             real_image = next(dataloader).to(device)
