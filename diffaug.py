@@ -4,6 +4,8 @@
 
 import torch
 import torch.nn.functional as F
+from torchvision import transforms
+import numpy as np
 
 
 def DiffAugment(x, policy='', channels_first=True):
@@ -23,6 +25,10 @@ def rand_brightness(x):
     x = x + (torch.rand(x.size(0), 1, 1, 1, dtype=x.dtype, device=x.device) - 0.5)
     return x
 
+def rand_flip(x, prob=0.5):
+    if np.random.rand() > prob:
+        x = transforms.functional.hflip(x)
+    return x
 
 def rand_saturation(x):
     x_mean = x.mean(dim=1, keepdim=True)
@@ -44,6 +50,7 @@ def rand_translation(x, ratio=0.125):
         torch.arange(x.size(0), dtype=torch.long, device=x.device),
         torch.arange(x.size(2), dtype=torch.long, device=x.device),
         torch.arange(x.size(3), dtype=torch.long, device=x.device),
+        indexing='ij'
     )
     grid_x = torch.clamp(grid_x + translation_x + 1, 0, x.size(2) + 1)
     grid_y = torch.clamp(grid_y + translation_y + 1, 0, x.size(3) + 1)
@@ -60,6 +67,7 @@ def rand_cutout(x, ratio=0.5):
         torch.arange(x.size(0), dtype=torch.long, device=x.device),
         torch.arange(cutout_size[0], dtype=torch.long, device=x.device),
         torch.arange(cutout_size[1], dtype=torch.long, device=x.device),
+        indexing='ij'
     )
     grid_x = torch.clamp(grid_x + offset_x - cutout_size[0] // 2, min=0, max=x.size(2) - 1)
     grid_y = torch.clamp(grid_y + offset_y - cutout_size[1] // 2, min=0, max=x.size(3) - 1)
@@ -73,4 +81,5 @@ AUGMENT_FNS = {
     'color': [rand_brightness, rand_saturation, rand_contrast],
     'translation': [rand_translation],
     'cutout': [rand_cutout],
+    'flip': [rand_flip]
 }
