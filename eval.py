@@ -58,7 +58,7 @@ if __name__ == "__main__":
     net_ig.to(device)
 
     # for epoch in [10000*i for i in range(args.start_iter, args.end_iter+1)]:
-    ckpt = f"train_results/{args.artifacts}/models/{args.ckpt}.pth"
+    ckpt = f"train_results/{args.name}/models/{args.ckpt}.pth"
     checkpoint = torch.load(ckpt, map_location=lambda a,b: a)
     # Remove prefix `module`.
     checkpoint['g'] = {k.replace('module.', ''): v for k, v in checkpoint['g'].items()}
