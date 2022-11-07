@@ -15,7 +15,7 @@ from operation import ImageFolder, InfiniteSamplerWrapper
 from diffaug import DiffAugment
 policy = 'color,translation'
 import lpips
-percept = lpips.PerceptualLoss(model='net-lin', net='vgg', use_gpu=True)
+percept = lpips.PerceptualLoss(model='net-lin', net='vgg')
 
 
 #torch.backends.cudnn.benchmark = True
@@ -80,6 +80,7 @@ def train(args):
     if use_cuda:
         device = torch.device("cuda:0")
 
+    percept.to(device)
     transform_list = [
             transforms.Resize((int(im_size),int(im_size))),
             transforms.RandomHorizontalFlip(),

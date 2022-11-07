@@ -9,11 +9,23 @@ import numpy as np
 
 
 def DiffAugment(x, policy='', channels_first=True):
-    if policy:
+    if policy in AUGMENT_FNS:
         if not channels_first:
             x = x.permute(0, 3, 1, 2)
         for p in policy.split(','):
             for f in AUGMENT_FNS[p]:
+                x = f(x)
+        if not channels_first:
+            x = x.permute(0, 2, 3, 1)
+        x = x.contiguous()
+    return x
+
+def FakeAugment(x, policy='', channels_first=True):
+    if policy in FAKE_AUGMENT_FNS:
+        if not channels_first:
+            x = x.permute(0, 3, 1, 2)
+        for p in policy.split(','):
+            for f in FAKE_AUGMENT_FNS[p]:
                 x = f(x)
         if not channels_first:
             x = x.permute(0, 2, 3, 1)
@@ -76,10 +88,20 @@ def rand_cutout(x, ratio=0.5):
     x = x * mask.unsqueeze(1)
     return x
 
+def rand_overlap(x, min=0.05, max=0.2):
+    T = transforms.RandomAffine(degrees=(0,0), translate=(min, max), scale=(1, 1))
+    y = T(x) * 0.5
+    x[y > 0] = x[y > 0] * 0.5 + [y > 0]
+    x[x > 1] = 1
+    return x
 
 AUGMENT_FNS = {
     'color': [rand_brightness, rand_saturation, rand_contrast],
     'translation': [rand_translation],
     'cutout': [rand_cutout],
     'flip': [rand_flip]
+}
+
+FAKE_AUGMENT_FNS = {
+    'ghost': [rand_overlap]
 }

@@ -1,3 +1,8 @@
+.vscode/
+
+*.mp4
+project_video_frames/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -138,3 +143,4 @@ dmypy.json
 cython_debug/
 storage/*
 train_results/*
+*.pyc

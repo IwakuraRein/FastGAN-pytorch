@@ -9,3 +9,4 @@ opencv-python==4.5.1.48
 easing-functions==1.0.4
 torch
 torchvision
+lpips

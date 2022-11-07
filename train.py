@@ -14,9 +14,8 @@ import os
 from models import weights_init, Discriminator, Generator
 from operation import copy_G_params, load_params, get_dir
 from operation import ImageFolder, InfiniteSamplerWrapper
-from diffaug import DiffAugment
+from diffaug import DiffAugment, FakeAugment
 import lpips
-percept = lpips.PerceptualLoss(model='net-lin', net='vgg', use_gpu=True)
 
 
 #torch.backends.cudnn.benchmark = True
@@ -33,7 +32,7 @@ def crop_image_by_part(image, part):
     if part==3:
         return image[:,:,hw:,hw:]
 
-def train_d(net, data, label="real"):
+def train_d(net, percept, data, label="real"):
     """Train function of discriminator"""
     if label=="real":
         part = random.randint(0, 3)
@@ -53,6 +52,7 @@ def train_d(net, data, label="real"):
 
 def train(args):
 
+    # percept = lpips.PerceptualLoss(model='net-lin', net='vgg', use_gpu=True)
     data_root = args.path
     total_iterations = args.iter
     checkpoint = args.ckpt
@@ -66,7 +66,7 @@ def train(args):
     nbeta1 = 0.5
     use_cuda = True
     multi_gpu = args.multi_gpu
-    dataloader_workers = 8
+    dataloader_workers = 4
     current_iteration = 0
     save_interval = args.save_interval
     saved_model_folder, saved_image_folder = get_dir(args)
@@ -75,6 +75,8 @@ def train(args):
     if use_cuda:
         device = torch.device("cuda")
 
+    percept = lpips.LPIPS(net='vgg')
+    percept.to(device)
     transform_list = [
             transforms.Resize((int(im_size),int(im_size))),
             transforms.RandomHorizontalFlip(),
@@ -162,12 +164,13 @@ def train(args):
 
             real_image = DiffAugment(real_image, policy=enhence_policy)
             fake_images = [DiffAugment(fake, policy=enhence_policy) for fake in fake_images]
+            fake_images.extend([FakeAugment(real_image, policy=enhence_policy)])
             
             ## 2. train Discriminator
             netD.zero_grad()
 
-            err_dr, rec_img_all, rec_img_small, rec_img_part = train_d(netD, real_image, label="real")
-            train_d(netD, [fi.detach() for fi in fake_images], label="fake")
+            err_dr, rec_img_all, rec_img_small, rec_img_part = train_d(netD, percept, real_image, label="real")
+            train_d(netD, percept, [fi.detach() for fi in fake_images], label="fake")
             optimizerD.step()
             
             ## 3. train Generator
@@ -195,7 +198,7 @@ def train(args):
                             rec_img_part]).add(1).mul(0.5), saved_image_folder+'/rec_%d.jpg'%iteration )
                 load_params(netG, backup_para)
 
-            if iteration % (save_interval) == 0 or iteration == total_iterations:
+            if iteration != 0 and (iteration % (save_interval) == 0 or iteration == total_iterations):
                 backup_para = copy_G_params(netG)
                 load_params(netG, avg_param_G)
                 torch.save({'g':netG.state_dict(),'d':netD.state_dict()}, saved_model_folder+'/%d.pth'%iteration)
@@ -220,7 +223,8 @@ if __name__ == "__main__":
     parser.add_argument('--ckpt', type=str, default='None', help='checkpoint weight path. can be either a number or "xx/xx.pth"')
     parser.add_argument('--multi_gpu', type=bool, default=False, help='wether use multiple gpus. you can specify gpus via "export CUDA_VISIBLE_DEVICE=0,1,2,3"')
     parser.add_argument('--save_interval', type=int, default=5000, help='how many iterations before saving a model')
-    parser.add_argument('--data_augment', type=str, default='color,translation,flip', help='can be one or more of {color, translation, cutout, flip}')
+    parser.add_argument('--data_augment', type=str, default='color,translation,flip,ghost', help='can be one or more of {color, translation, cutout, flip}')
+    parser.add_argument('--save_path', type=str, default='train_results', help='path to save models and images')
 
     args = parser.parse_args()
     print(args)

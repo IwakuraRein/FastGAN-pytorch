@@ -46,7 +46,8 @@ data_root = '/media/database/images/first_1k'
 dataset = ImageFolder(root=data_root, transform=trans)
 
 import lpips
-percept = lpips.PerceptualLoss(model='net-lin', net='vgg', use_gpu=True)
+percept = lpips.PerceptualLoss(model='net-lin', net='vgg')
+percept.to(device)
 
 the_image = g_imgs[0].unsqueeze(0)
 def find_closest(the_image):

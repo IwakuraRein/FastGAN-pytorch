@@ -174,11 +174,14 @@ if __name__ == "__main__":
     from models import Generator as Generator_freeform
     
     frames_dist_folder = 'project_video_frames' # a folder to save generated images
-    ckpt_path = './time_1024_1/models/180000.pth' # path to the checkpoint
+    ckpt_path = './models/50000.pth' # path to the checkpoint
     video_name = 'videl_keyframe_15'  # name of the generated video
 
     model_type = 'freeform'
-    net = Generator_freeform(ngf=64, nz=100)
+    ngf = 64
+    nz = 256
+    im_size = 256
+    net = Generator_freeform(ngf=ngf, nz=nz, nc=3, im_size=im_size)
     net.load_state_dict(torch.load(ckpt_path)['g'])
     net.to(device)
     net.eval()
@@ -192,14 +195,14 @@ if __name__ == "__main__":
 
     fps = 30
     minutes = 1
-    im_size = 1024
+    im_size = 256
     
     ease_fn=ease_fn_dict['SineEaseInOut']
 
     init_kf_nbr = 15
     nbr_key_frames_per_minute = [init_kf_nbr-i for i in range(minutes)]
     nbr_key_frames_total = sum(nbr_key_frames_per_minute)
-    noises = torch.randn( nbr_key_frames_total , 100).to(device)
+    noises = torch.randn( nbr_key_frames_total , 256).to(device)
     user_selected_noises = [n for n in noises]
     nbr_interpolation_list = [[fps*60//nbr_kf]*nbr_kf for nbr_kf in nbr_key_frames_per_minute]
     nbl = []
@@ -212,7 +215,7 @@ if __name__ == "__main__":
     for idx in range(len(user_selected_noises)-1):
         main_zs += interpolate_ease_inout(user_selected_noises[idx], 
                             user_selected_noises[idx+1], nbl[idx], ease_fn, model_type)
-    for idx in range(100):
+    for idx in range(256):
         main_zs.append(main_zs[-1])
     print('generating images ...')
     batch_generate_and_save(net, main_zs, folder_name=frames_dist_folder, batch_size=8, model_type=model_type, im_size=im_size)
